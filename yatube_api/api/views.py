@@ -1,18 +1,25 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.pagination import LimitOffsetPagination
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 
-from posts.models import Post, Comment, Group
-from .permissions import IsOwnerOrReadOnly
-from .serializers import (CommentSerializer, GroupSerializer, PostSerializer)
+from posts.models import Post, Comment, Group, User
+from .permissions import IsOwnerOrReadOnly, ReadOnly
+from .serializers import (CommentSerializer, GroupSerializer, PostSerializer, FollowSerializer)
 
 
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
-    permission_classes = (IsOwnerOrReadOnly, IsAuthenticated, )
+    permission_classes = (IsOwnerOrReadOnly, )
     pagination_class = LimitOffsetPagination
+
+    def get_permissions(self):
+        if self.action == 'retrieve':
+
+            return (ReadOnly(), )
+
+        return super().get_permissions()
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -20,7 +27,7 @@ class PostViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    permission_classes = (IsOwnerOrReadOnly, IsAuthenticated, )
+    permission_classes = (IsOwnerOrReadOnly, )
 
     def get_queryset(self):
         post = get_object_or_404(Post, id=self.kwargs.get('post_id'))
@@ -39,3 +46,14 @@ class GroupViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class FollowViewSet(viewsets.ModelViewSet):
+    serializer_class = FollowSerializer
+    permission_classes = (IsAuthenticated, )
+
+    def get_queryset(self):
+        user = get_object_or_404(User, username=self.request.user.username)
+        new_queryset = user.following.all()
+
+        return new_queryset
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)

@@ -11,6 +11,15 @@ class Post(models.Model):
         User, on_delete=models.CASCADE, related_name='posts')
     image = models.ImageField(
         upload_to='posts/', null=True, blank=True)
+    group = models.ForeignKey(
+        'Group',
+        on_delete=models.SET_NULL,
+        related_name='posts',
+        blank=True,
+        null=True,
+        verbose_name='группа постов',
+        help_text='Группа, к которой будет относиться пост',
+    )
 
     def __str__(self):
         return self.text
@@ -50,8 +59,8 @@ class Follow(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['user', 'author'],
-                name='uniq_user_and_author'
+                fields=['user', 'following'],
+                name='uniq_user_and_following'
             )
         ]
 
