@@ -1,11 +1,13 @@
 from rest_framework import serializers
-from rest_framework.relations import SlugRelatedField
 
-from posts.models import Comment, Post, Group, Follow
+from posts.models import Comment, Follow, Group, Post, User
 
 
 class PostSerializer(serializers.ModelSerializer):
-    author = SlugRelatedField(slug_field='username', read_only=True)
+    author = serializers.SlugRelatedField(
+        slug_field='username',
+        read_only=True
+    )
 
     class Meta:
         fields = '__all__'
@@ -20,7 +22,8 @@ class GroupSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
-        read_only=True, slug_field='username'
+        read_only=True,
+        slug_field='username',
     )
     post = serializers.PrimaryKeyRelatedField(read_only=True)
 
@@ -30,16 +33,29 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class FollowSerializer(serializers.ModelSerializer):
-    user = SlugRelatedField(slug_field='username', read_only=True)
-    following = SlugRelatedField(slug_field='username', read_only=True)
+    user = serializers.SlugRelatedField(
+        slug_field='username',
+        read_only=True,
+        default=serializers.CurrentUserDefault()
+    )
+    following = serializers.SlugRelatedField(
+        slug_field='username',
+        queryset=User.objects.all())
 
     class Meta:
         fields = '__all__'
         model = Follow
 
     def validate(self, data):
-        if data['user'] == data['following']:
+        user = self.context['request'].user
+        following = data['following']
+
+        if user == following:
             raise serializers.ValidationError(
-                'Нельзя подписаться самого на себя!')
+                'Нельзя подписаться сам на себя!')
+
+        if following.following.filter(user=user).exists():
+            raise serializers.ValidationError(
+                'Данная подписка уже существует!')
 
         return data
