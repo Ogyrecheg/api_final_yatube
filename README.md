@@ -47,4 +47,8 @@ python3 manage.py migrate
 
 ```
 python3 manage.py runserver
-``` 
+```
+
+### Об авторе проекта:
+
+Студент Яндекс-практикума Шевченко А.И когорта 17+ 
